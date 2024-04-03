@@ -14,6 +14,7 @@
 
 
 extern I2C_HandleTypeDef hi2c1;
+HAL_StatusTypeDef status;
 
 #define PCA9685_I2C_BASE_MODULE_ADDRESS (byte)0x40
 #define PCA9685_I2C_BASE_MODULE_ADRMASK (byte)0x3F
@@ -68,7 +69,7 @@ uint8_t __attribute__((noinline)) i2c_read(bool last);
 #ifndef PCA9685_USE_SOFTWARE_I2C
 
 
-void PCA9685_1(byte i2cAddress, I2C_HandleTypeDef* i2cWire , uint32_t i2cSpeed )
+void PCA9685_1(byte i2cAddress, I2C_HandleTypeDef i2cWire , uint32_t i2cSpeed )
 {
 
 
@@ -87,7 +88,7 @@ void PCA9685_1(byte i2cAddress, I2C_HandleTypeDef* i2cWire , uint32_t i2cSpeed )
 
 
 
-void PCA9685_2(I2C_HandleTypeDef* i2cWire, uint32_t i2cSpeed, byte i2cAddress)
+void PCA9685_2(I2C_HandleTypeDef i2cWire, uint32_t i2cSpeed, byte i2cAddress)
 {
 
 
@@ -128,7 +129,7 @@ void resetDevices()
 	printf("resetDevices\n\r");
 #endif
 
-MX_I2C1_Init();
+HAL_I2C_Init(&hi2c1);
 
 #ifdef PCA9685_ENABLE_DEBUG_OUTPUT
 void checkForErrors ();
@@ -829,33 +830,47 @@ void i2cWire_begin() {
 }
 
 
-void i2cWire_beginTransmission(uint8_t addr) {
+
+HAL_StatusTypeDef i2cWire_begin_end_write_Transmission(uint8_t addr, uint8_t data) {
     _lastI2CError = 0;
 #ifndef PCA9685_USE_SOFTWARE_I2C
-    _i2cWire->beginTransmission(addr);
+   HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(&hi2c1, (uint16_t)addr, (uint8_t*)data, sizeof(data), HAL_MAX_DELAY);
+    return status;
 #else
     i2c_start(addr);
 #endif
 }
 
-uint8_t i2cWire_endTransmission(void) {
+/*uint8_t i2cWire_endTransmission(void) {
 #ifndef PCA9685_USE_SOFTWARE_I2C
     return (_lastI2CError = _i2cWire->endTransmission());
 #else
     PCA9685_i2c_stop(); // Manually have to send stop bit in software i2c mode
     return (_lastI2CError = 0);
 #endif
-}
+}*/
 
-uint8_t i2cWire_requestFrom(uint8_t addr, uint8_t len) {
+HAL_StatusTypeDef i2cWire_requestFrom_read(uint8_t addr, uint8_t len) {
 #ifndef PCA9685_USE_SOFTWARE_I2C
-    return _i2cWire->requestFrom(addr, (size_t)len);
+	if(len==1)
+	{
+		uint8_t buff[1];
+		HAL_StatusTypeDef status = HAL_I2C_Master_Receive(&hi2c1, addr, buff, 1, HAL_MAX_DELAY);
+	}
+	else if(len==4)
+	{
+		uint8_t buff[4];
+		HAL_StatusTypeDef status = HAL_I2C_Master_Receive(&hi2c1, addr, buff, 4, HAL_MAX_DELAY);
+
+	}
+    return status;
 #else
     i2c_start(addr | 0x01);
     return (_readBytes = len);
 #endif
 }
 
+/*
 uint8_t i2cWire_write(uint8_t data) {
 #ifndef PCA9685_USE_SOFTWARE_I2C
     return _i2cWire->write(data);
@@ -863,9 +878,10 @@ uint8_t i2cWire_write(uint8_t data) {
     return (size_t)PCA9685_i2c_write(data);
 #endif
 }
+*/
 
 
-uint8_t i2cWire_read(void) {
+/*uint8_t i2cWire_read(void) {
 #ifndef PCA9685_USE_SOFTWARE_I2C
     return (uint8_t)(_i2cWire->read() & 0xFF);
 #else
@@ -878,7 +894,7 @@ uint8_t i2cWire_read(void) {
         return (uint8_t)(i2c_read(true) & 0xFF);
     }
 #endif
-}
+}*/
 
 #ifdef PCA9685_ENABLE_DEBUG_OUTPUT
 
@@ -1038,12 +1054,14 @@ void checkForErrors() {
 #endif // /ifdef PCA9685_ENABLE_DEBUG_OUTPUT
 
 
-_coeff=NULL;
-_isCSpline=false;
 
-PCA9685_ServoEval_1(uint16_t minPWMAmount, uint16_t maxPWMAmount)
+
+void PCA9685_ServoEval_1(uint16_t minPWMAmount, uint16_t maxPWMAmount)
 
 {
+
+	float* _coeff=NULL;
+	_isCSpline=false;
     minPWMAmount = MIN(minPWMAmount, PCA9685_PWM_FULL);
 
 
@@ -1061,15 +1079,16 @@ PCA9685_ServoEval_1(uint16_t minPWMAmount, uint16_t maxPWMAmount)
 }
 
 
-_coeff=NULL;
-_isCSpline=false;
+
 
 void PCA9685_ServoEval_2(uint16_t minPWMAmount, uint16_t midPWMAmount, uint16_t maxPWMAmount)
 
 
 {
-    minPWMAmount = MIN(minPWMAmount, PCA9685_PWM_FULL);
+	float* _coeff=NULL;
+	_isCSpline=false;
 
+    minPWMAmount = MIN(minPWMAmount, PCA9685_PWM_FULL);
 
 
     if (midPWMAmount < minPWMAmount) {

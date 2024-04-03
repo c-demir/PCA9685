@@ -42,6 +42,9 @@ typedef uint8_t byte ;
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+extern I2C_HandleTypeDef hi2c1;
+extern UART_HandleTypeDef huart2;
+extern TIM_HandleTypeDef htim1;
 
 /* USER CODE END EC */
 
@@ -57,6 +60,7 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 void delay (uint16_t delay);
+extern void MX_I2C1_Init(void); // Prototype so you can call the non-static function
 
 /* USER CODE END EFP */
 

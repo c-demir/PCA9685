@@ -34,10 +34,10 @@ extern I2C_HandleTypeDef hi2c1;
 
 
 // Default proxy addresser i2c addresses
-#define PCA9685_I2C_DEF_ALLCALL_PROXYADR    (byte)0xE0      // Default AllCall i2c proxy address
-#define PCA9685_I2C_DEF_SUB1_PROXYADR       (byte)0xE2      // Default Sub1 i2c proxy address
-#define PCA9685_I2C_DEF_SUB2_PROXYADR       (byte)0xE4      // Default Sub2 i2c proxy address
-#define PCA9685_I2C_DEF_SUB3_PROXYADR       (byte)0xE8      // Default Sub3 i2c proxy address
+#define PCA9685_I2C_DEF_ALLCALL_PROXYADR    	(byte)0xE0      // Default AllCall i2c proxy address
+#define PCA9685_I2C_DEF_SUB1_PROXYADR       	(byte)0xE2      // Default Sub1 i2c proxy address
+#define PCA9685_I2C_DEF_SUB2_PROXYADR       	(byte)0xE4      // Default Sub2 i2c proxy address
+#define PCA9685_I2C_DEF_SUB3_PROXYADR       	(byte)0xE8      // Default Sub3 i2c proxy address
 
 
 // Output driver control mode (see datasheet Table 12 and Fig 13, 14, and 15 concerning correct
@@ -95,12 +95,13 @@ typedef enum  {
 }PCA9685_PhaseBalancer;
 
 
+
 #ifndef PCA9685_USE_SOFTWARE_I2C
 
-void PCA9685_1(byte i2cAddress, I2C_HandleTypeDef* i2cWire , uint32_t i2cSpeed );
+void PCA9685_1(byte i2cAddress, I2C_HandleTypeDef i2cWire , uint32_t i2cSpeed );
 
 // Convenience constructor for custom Wire instance. See main constructor.
-void PCA9685_2(I2C_HandleTypeDef* i2cWire, uint32_t i2cSpeed, byte i2cAddress);
+void PCA9685_2(I2C_HandleTypeDef i2cWire, uint32_t i2cSpeed, byte i2cAddress);
 
 #else
 
@@ -201,7 +202,7 @@ void PCA9685_2(I2C_HandleTypeDef* i2cWire, uint32_t i2cSpeed, byte i2cAddress);
 
     byte _i2cAddress;                                       // Module's i2c address (default: B000000)
    #ifndef PCA9685_USE_SOFTWARE_I2C
-    	I2C_HandleTypeDef* _i2cWire;                                      // Wire class instance (unowned) (default: Wire)
+    	I2C_HandleTypeDef _i2cWire;                                      // Wire class instance (unowned) (default: Wire)
         uint32_t _i2cSpeed;                                     // Module's i2c clock speed (default: 400000)
    #endif
        PCA9685_OutputDriverMode _driverMode;                   // Output driver mode
@@ -226,10 +227,10 @@ void PCA9685_2(I2C_HandleTypeDef* i2cWire, uint32_t i2cSpeed, byte i2cAddress);
        uint8_t _readBytes;
    #endif
        void i2cWire_begin();
-       void i2cWire_beginTransmission(uint8_t);
-       uint8_t i2cWire_endTransmission(void);
+       HAL_StatusTypeDef i2cWire_begin_end_write_Transmission(uint8_t, uint8_t);
+       //uint8_t i2cWire_endTransmission(void);
        uint8_t i2cWire_requestFrom(uint8_t, uint8_t);
-       size_t i2cWire_write(uint8_t);
+       //size_t i2cWire_write(uint8_t data);
        uint8_t i2cWire_read(void);
 
 
