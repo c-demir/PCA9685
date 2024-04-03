@@ -9,12 +9,26 @@
 #include "PCA9685.h"
 #include <assert.h>
 #include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_i2c.h"
 #include "math.h"
 #include "main.h"
+#include <stdlib.h>
 
 
 extern I2C_HandleTypeDef hi2c1;
 HAL_StatusTypeDef status;
+byte _i2cAddress;
+PCA9685_OutputDriverMode _driverMode;
+PCA9685_OutputEnabledMode _enabledMode;
+PCA9685_OutputDisabledMode _disabledMode;
+PCA9685_ChannelUpdateMode _updateMode;
+PCA9685_PhaseBalancer _phaseBalancer;
+bool _isProxyAddresser;
+byte _lastI2CError;
+
+uint16_t phaseBegin;
+uint16_t phaseEnd;
+
 
 #define PCA9685_I2C_BASE_MODULE_ADDRESS (byte)0x40
 #define PCA9685_I2C_BASE_MODULE_ADRMASK (byte)0x3F
@@ -395,11 +409,11 @@ void setChannelPWM(int channel, uint16_t pwmAmount) {
 
     writeChannelPWM(phaseBegin, phaseEnd);
 
-    writeChannelEnd();
+
 }
 
 
-void PsetChannelsPWM(int begChannel, int numChannels, const uint16_t *pwmAmounts) {
+void setChannelsPWM(int begChannel, int numChannels, const uint16_t *pwmAmounts) {
     if (begChannel < 0 || begChannel > 15 || numChannels < 0) return;
     if (begChannel + numChannels > 16) numChannels -= (begChannel + numChannels) - 16;
 
@@ -472,10 +486,18 @@ uint16_t getChannelPWM(int channel) {
         return 0;
     }
 
-    int bytesRead = i2cWire_requestFrom((uint8_t)_i2cAddress, 4);
+
+    uint8_t buff[4];
+     status = HAL_I2C_Master_Receive(&hi2c1, _i2cAddress, buff, 4, HAL_MAX_DELAY);
+
+
+
+    /*int bytesRead = i2cWire_requestFrom((uint8_t)_i2cAddress, 4);
     if (bytesRead != 4) {
         while (bytesRead-- > 0)
-            i2cWire_read();
+            i2cWire_read();*/
+     if(status!=HAL_OK)
+     {
 #ifdef PCA9685_USE_SOFTWARE_I2C
         PCA9685_i2c_stop(); // Manually have to send stop bit in software i2c mode
 #endif
@@ -484,12 +506,16 @@ uint16_t getChannelPWM(int channel) {
         checkForErrors();
 #endif
         return 0;
-  }
+}
+
 #ifndef PCA9685_SWAP_PWM_BEG_END_REGS
-    uint16_t phaseBegin = (uint16_t)i2cWire_read();
-    phaseBegin |= (uint16_t)i2cWire_read() << 8;
-    uint16_t phaseEnd = (uint16_t)i2cWire_read();
-    phaseEnd |= (uint16_t)i2cWire_read() << 8;
+
+
+
+
+    HAL_I2C_Mem_Read(&hi2c1,_i2cAddress,regAddress,I2C_MEMADD_SIZE_8BIT, (uint8_t*)phaseBegin, 2, HAL_MAX_DELAY);
+    HAL_I2C_Mem_Read(&hi2c1,_i2cAddress,regAddress,I2C_MEMADD_SIZE_8BIT, (uint8_t*)phaseEnd, 2, HAL_MAX_DELAY);
+
 #else
     uint16_t phaseEnd = (uint16_t)i2cWire_read();
     phaseEnd |= (uint16_t)i2cWire_read() << 8;
@@ -534,9 +560,9 @@ uint16_t getChannelPWM(int channel) {
 #endif
 
     return retVal;
-}
 
-void PenableAllCallAddress(byte i2cAddressAllCall) {
+    }
+void enableAllCallAddress(byte i2cAddressAllCall) {
     if (_isProxyAddresser) return;
 
     byte i2cAddress = PCA9685_I2C_BASE_PROXY_ADDRESS | (i2cAddressAllCall & PCA9685_I2C_BASE_PROXY_ADRMASK);
@@ -567,6 +593,7 @@ void enableSub1Address(byte i2cAddressSub1) {
     byte mode1Reg = readRegister(PCA9685_MODE1_REG);
     writeRegister(PCA9685_MODE1_REG, (mode1Reg |= PCA9685_MODE1_SUBADR1));
 }
+
 
 
 void enableSub2Address(byte i2cAddressSub2) {
@@ -752,16 +779,16 @@ void writeChannelPWM(uint16_t phaseBegin, uint16_t phaseEnd) {
 #endif
 }
 
-void writeChannelEnd() {
+/*void writeChannelEnd() {
     i2cWire_endTransmission();
 
 #ifdef PCA9685_ENABLE_DEBUG_OUTPUT
     checkForErrors();
 #endif
-}
+}*/
 
 
-void PwriteRegister(byte regAddress, byte value) {
+void writeRegister(byte regAddress, byte value) {
 #ifdef PCA9685_ENABLE_DEBUG_OUTPUT
     printf("  writeRegister regAddress: 0x");
     printf("%X",regAddress);
@@ -793,10 +820,8 @@ byte readRegister(byte regAddress) {
         return 0;
     }
 
-    int bytesRead = i2cWire_requestFrom((uint8_t)_i2cAddress, 1);
-    if (bytesRead != 1) {
-        while (bytesRead-- > 0)
-            i2cWire_read();
+    uint8_t buff[1];
+    HAL_I2C_Master_Receive(&hi2c1, _i2cAddress, buff, 1, HAL_MAX_DELAY);
 #ifdef PCA9685_USE_SOFTWARE_I2C
         PCA9685_i2c_stop(); // Manually have to send stop bit in software i2c mode
 #endif
@@ -807,7 +832,7 @@ byte readRegister(byte regAddress) {
         return 0;
     }
 
-    byte retVal = i2cWire_read();
+
 
 #ifdef PCA9685_USE_SOFTWARE_I2C
     PCA9685_i2c_stop(); // Manually have to send stop bit in software i2c mode
@@ -818,8 +843,8 @@ byte readRegister(byte regAddress) {
     printf("%X",retVal);
 #endif
 
-    return retVal;
-}
+
+
 
 
 void i2cWire_begin() {
@@ -852,15 +877,18 @@ HAL_StatusTypeDef i2cWire_begin_end_write_Transmission(uint8_t addr, uint8_t dat
 
 HAL_StatusTypeDef i2cWire_requestFrom_read(uint8_t addr, uint8_t len) {
 #ifndef PCA9685_USE_SOFTWARE_I2C
+
+	HAL_StatusTypeDef status ;
+
 	if(len==1)
 	{
 		uint8_t buff[1];
-		HAL_StatusTypeDef status = HAL_I2C_Master_Receive(&hi2c1, addr, buff, 1, HAL_MAX_DELAY);
+		 HAL_I2C_Master_Receive(&hi2c1, addr, buff, 1, HAL_MAX_DELAY);
 	}
 	else if(len==4)
 	{
 		uint8_t buff[4];
-		HAL_StatusTypeDef status = HAL_I2C_Master_Receive(&hi2c1, addr, buff, 4, HAL_MAX_DELAY);
+		HAL_I2C_Master_Receive(&hi2c1, addr, buff, 4, HAL_MAX_DELAY);
 
 	}
     return status;
@@ -1152,7 +1180,23 @@ void PCA9685_ServoEval_2(uint16_t minPWMAmount, uint16_t midPWMAmount, uint16_t 
 
 uint16_t pwmForAngle(float angle) {
     float retVal;
-    angle = constrain(angle + 90, 0, 180);
+
+    if(angle<=180 || angle >=0)
+    {
+    	angle=angle+90;
+    }
+
+    else if(angle<0)
+    {
+    	angle=0;
+    }
+
+    else
+    {
+    	angle=180;
+    }
+
+
 
     if (!_isCSpline) {
         retVal = _coeff[0] + (_coeff[1] * angle);

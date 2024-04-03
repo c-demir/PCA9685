@@ -200,18 +200,18 @@ void PCA9685_2(I2C_HandleTypeDef i2cWire, uint32_t i2cSpeed, byte i2cAddress);
     	void checkForErrors();
 	#endif
 
-    byte _i2cAddress;                                       // Module's i2c address (default: B000000)
+   extern byte _i2cAddress;                                       // Module's i2c address (default: B000000)
    #ifndef PCA9685_USE_SOFTWARE_I2C
-    	I2C_HandleTypeDef _i2cWire;                                      // Wire class instance (unowned) (default: Wire)
-        uint32_t _i2cSpeed;                                     // Module's i2c clock speed (default: 400000)
+    	extern I2C_HandleTypeDef _i2cWire;                                      // Wire class instance (unowned) (default: Wire)
+        extern uint32_t _i2cSpeed;                                     // Module's i2c clock speed (default: 400000)
    #endif
-       PCA9685_OutputDriverMode _driverMode;                   // Output driver mode
-       PCA9685_OutputEnabledMode _enabledMode;                 // OE enabled output mode
-       PCA9685_OutputDisabledMode _disabledMode;               // OE disabled output mode
-       PCA9685_ChannelUpdateMode _updateMode;                  // Channel update mode
-       PCA9685_PhaseBalancer _phaseBalancer;                   // Phase balancer scheme
-       bool _isProxyAddresser;                                 // Proxy addresser flag (disables certain functionality)
-       byte _lastI2CError;                                     // Last module i2c error
+        extern PCA9685_OutputDriverMode _driverMode;                   // Output driver mode
+        extern PCA9685_OutputEnabledMode _enabledMode;                 // OE enabled output mode
+       extern PCA9685_OutputDisabledMode _disabledMode;               // OE disabled output mode
+       extern PCA9685_ChannelUpdateMode _updateMode;                  // Channel update mode
+       extern PCA9685_PhaseBalancer _phaseBalancer;                   // Phase balancer scheme
+       extern bool _isProxyAddresser;                                 // Proxy addresser flag (disables certain functionality)
+       extern byte _lastI2CError;                                     // Last module i2c error
 
        byte getMode2Value();
        void getPhaseCycle(int channel, uint16_t pwmAmount, uint16_t *phaseBegin, uint16_t *phaseEnd);
@@ -250,8 +250,8 @@ void PCA9685_2(I2C_HandleTypeDef i2cWire, uint32_t i2cSpeed, byte i2cAddress);
                // Returns the PWM value to use given the speed multiplier (-1 to +1)
                uint16_t pwmForSpeed(float speed);
 
-               float *_coeff;      // a,b,c,d coefficient values
-               bool _isCSpline;    // Cubic spline tracking, for _coeff length
+               extern float *_coeff;      // a,b,c,d coefficient values
+               extern bool _isCSpline;    // Cubic spline tracking, for _coeff length
 
 
 
