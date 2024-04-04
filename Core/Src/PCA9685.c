@@ -513,8 +513,8 @@ uint16_t getChannelPWM(int channel) {
 
 
 
-    HAL_I2C_Mem_Read(&hi2c1,_i2cAddress,regAddress,I2C_MEMADD_SIZE_8BIT, (uint8_t*)phaseBegin, 2, HAL_MAX_DELAY);
-    HAL_I2C_Mem_Read(&hi2c1,_i2cAddress,regAddress,I2C_MEMADD_SIZE_8BIT, (uint8_t*)phaseEnd, 2, HAL_MAX_DELAY);
+    HAL_I2C_Mem_Read(&hi2c1,_i2cAddress,regAddress,I2C_MEMADD_SIZE_8BIT, (uint8_t*)&phaseBegin, 2, HAL_MAX_DELAY);
+    HAL_I2C_Mem_Read(&hi2c1,_i2cAddress,regAddress,I2C_MEMADD_SIZE_8BIT, (uint8_t*)&phaseEnd, 2, HAL_MAX_DELAY);
 
 #else
     uint16_t phaseEnd = (uint16_t)i2cWire_read();
@@ -859,7 +859,7 @@ void i2cWire_begin() {
 HAL_StatusTypeDef i2cWire_begin_end_write_Transmission(uint8_t addr, uint8_t data) {
     _lastI2CError = 0;
 #ifndef PCA9685_USE_SOFTWARE_I2C
-   HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(&hi2c1, (uint16_t)addr, (uint8_t*)data, sizeof(data), HAL_MAX_DELAY);
+   HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(&hi2c1, (uint16_t)addr, (uint8_t*)&data, sizeof(data), HAL_MAX_DELAY);
     return status;
 #else
     i2c_start(addr);
@@ -878,7 +878,7 @@ HAL_StatusTypeDef i2cWire_begin_end_write_Transmission(uint8_t addr, uint8_t dat
 HAL_StatusTypeDef i2cWire_requestFrom_read(uint8_t addr, uint8_t len) {
 #ifndef PCA9685_USE_SOFTWARE_I2C
 
-	HAL_StatusTypeDef status ;
+	HAL_StatusTypeDef status = HAL_OK;
 
 	if(len==1)
 	{
